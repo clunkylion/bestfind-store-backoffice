@@ -1,6 +1,7 @@
 "use server";
 
 import { db } from "@/server/db";
+import type { Product, Purchase, Sale } from "@prisma/client";
 import type { DashboardKPIs, ProductWithStats, ProfitByProduct } from "@/types";
 
 export async function getDashboardKPIs(): Promise<DashboardKPIs> {
@@ -22,22 +23,29 @@ export async function getDashboardKPIs(): Promise<DashboardKPIs> {
   const netProfit = totalRevenue - totalCost;
   const roi = totalInvested > 0 ? (netProfit / totalInvested) * 100 : 0;
 
-  const stockResult = await db.$queryRaw<{ total_stock: bigint }[]>`
-    SELECT COALESCE(SUM(p.quantity), 0) - COALESCE(SUM(s.quantity), 0) as total_stock
-    FROM (
-      SELECT product_id, SUM(quantity) as quantity FROM purchases GROUP BY product_id
-    ) p
-    LEFT JOIN (
-      SELECT product_id, SUM(quantity) as quantity FROM sales WHERE is_sold = true GROUP BY product_id
-    ) s ON p.product_id = s.product_id
-  `;
+  const purchases: Purchase[] = await db.purchase.findMany();
+  const sales: Sale[] = await db.sale.findMany({ where: { isSold: true } });
+
+  const purchasedQty = new Map<number, number>();
+  for (const p of purchases) {
+    purchasedQty.set(p.productId, (purchasedQty.get(p.productId) ?? 0) + p.quantity);
+  }
+  const soldQty = new Map<number, number>();
+  for (const s of sales) {
+    soldQty.set(s.productId, (soldQty.get(s.productId) ?? 0) + s.quantity);
+  }
+
+  let totalStock = 0;
+  for (const [pid, bought] of purchasedQty) {
+    totalStock += bought - (soldQty.get(pid) ?? 0);
+  }
 
   return {
     totalInvested,
     totalRevenue,
     netProfit,
     roi,
-    totalStock: Number(stockResult[0]?.total_stock ?? 0),
+    totalStock,
     totalSold: Number(saleAgg._sum.quantity ?? 0),
     totalProducts: productCount,
     totalReceipts: receiptCount.length,
@@ -45,27 +53,20 @@ export async function getDashboardKPIs(): Promise<DashboardKPIs> {
 }
 
 export async function getProductsWithStats(): Promise<ProductWithStats[]> {
-  const products = await db.product.findMany({ orderBy: { name: "asc" } });
+  const products: Product[] = await db.product.findMany({ orderBy: { name: "asc" } });
+  const purchases: Purchase[] = await db.purchase.findMany();
+  const sales: Sale[] = await db.sale.findMany({ where: { isSold: true } });
 
-  const purchasesByProduct = await db.purchase.groupBy({
-    by: ["productId"],
-    _sum: { quantity: true },
-  });
+  const purchaseMap = new Map<number, number>();
+  for (const p of purchases) {
+    purchaseMap.set(p.productId, (purchaseMap.get(p.productId) ?? 0) + p.quantity);
+  }
+  const salesMap = new Map<number, number>();
+  for (const s of sales) {
+    salesMap.set(s.productId, (salesMap.get(s.productId) ?? 0) + s.quantity);
+  }
 
-  const salesByProduct = await db.sale.groupBy({
-    by: ["productId"],
-    where: { isSold: true },
-    _sum: { quantity: true },
-  });
-
-  const purchaseMap = new Map<number, number>(
-    purchasesByProduct.map((p: { productId: number; _sum: { quantity: number | null } }) => [p.productId, Number(p._sum.quantity ?? 0)])
-  );
-  const salesMap = new Map<number, number>(
-    salesByProduct.map((s: { productId: number; _sum: { quantity: number | null } }) => [s.productId, Number(s._sum.quantity ?? 0)])
-  );
-
-  return products.map((product) => {
+  return products.map((product: Product) => {
     const purchased = purchaseMap.get(product.id) ?? 0;
     const sold = salesMap.get(product.id) ?? 0;
     return {
@@ -81,7 +82,7 @@ export async function getProfitByProduct(): Promise<ProfitByProduct[]> {
   const sales = await db.sale.findMany({
     where: { isSold: true },
     include: { product: true },
-  });
+  }) as (Sale & { product: Product })[];
 
   const map = new Map<number, ProfitByProduct>();
 
@@ -120,22 +121,22 @@ export async function getProfitByProduct(): Promise<ProfitByProduct[]> {
 export async function getTopProductsByInvestment(): Promise<
   { productName: string; totalInvested: number }[]
 > {
-  const result = await db.purchase.groupBy({
-    by: ["productId"],
-    _sum: { total: true },
-    orderBy: { _sum: { total: "desc" } },
-    take: 5,
-  });
+  const purchases: Purchase[] = await db.purchase.findMany();
+  const products: Product[] = await db.product.findMany();
 
-  const productIds = result.map((r) => r.productId);
-  const products = await db.product.findMany({
-    where: { id: { in: productIds } },
-  });
+  const investmentMap = new Map<number, number>();
+  for (const p of purchases) {
+    investmentMap.set(p.productId, (investmentMap.get(p.productId) ?? 0) + Number(p.total));
+  }
 
-  const productMap = new Map(products.map((p) => [p.id, p.name]));
+  const productMap = new Map<number, string>(products.map((p: Product) => [p.id, p.name]));
 
-  return result.map((r) => ({
-    productName: productMap.get(r.productId) ?? "Desconocido",
-    totalInvested: Number(r._sum.total ?? 0),
+  const sorted = Array.from(investmentMap.entries())
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5);
+
+  return sorted.map(([pid, total]) => ({
+    productName: productMap.get(pid) ?? "Desconocido",
+    totalInvested: total,
   }));
 }
