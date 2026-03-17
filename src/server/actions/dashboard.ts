@@ -58,11 +58,11 @@ export async function getProductsWithStats(): Promise<ProductWithStats[]> {
     _sum: { quantity: true },
   });
 
-  const purchaseMap = new Map(
-    purchasesByProduct.map((p) => [p.productId, Number(p._sum.quantity ?? 0)])
+  const purchaseMap = new Map<number, number>(
+    purchasesByProduct.map((p: { productId: number; _sum: { quantity: number | null } }) => [p.productId, Number(p._sum.quantity ?? 0)])
   );
-  const salesMap = new Map(
-    salesByProduct.map((s) => [s.productId, Number(s._sum.quantity ?? 0)])
+  const salesMap = new Map<number, number>(
+    salesByProduct.map((s: { productId: number; _sum: { quantity: number | null } }) => [s.productId, Number(s._sum.quantity ?? 0)])
   );
 
   return products.map((product) => {

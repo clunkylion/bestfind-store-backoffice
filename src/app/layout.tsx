@@ -6,7 +6,7 @@ import "./globals.css";
 import "@neondatabase/auth/ui/tailwind";
 
 const geistSans = Geist({
-  variable: "--font-sans",
+  variable: "--font-geist-sans",
   subsets: ["latin"],
 });
 
