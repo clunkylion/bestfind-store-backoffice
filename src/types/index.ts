@@ -4,15 +4,17 @@ export type ActionResult<T = void> =
   | { success: true; data: T }
   | { success: false; error: string };
 
+type Decimal = string | number | { toString(): string };
+
 export type ProductWithStats = {
   id: number;
   name: string;
   size: string | null;
   gender: string;
   type: string;
-  cost: unknown;
-  marginPct: unknown;
-  salePrice: unknown;
+  cost: Decimal;
+  marginPct: Decimal;
+  salePrice: Decimal;
   createdAt: Date;
   updatedAt: Date;
   purchased: number;

@@ -12,12 +12,12 @@ const currencyFormatter = new Intl.NumberFormat("es-CL", {
   maximumFractionDigits: 0,
 });
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function formatCurrency(value: any): string {
+type Numeric = number | string | { toString(): string };
+
+export function formatCurrency(value: Numeric): string {
   return currencyFormatter.format(Number(value));
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function formatPercent(value: any): string {
+export function formatPercent(value: Numeric): string {
   return `${(Number(value) * 100).toFixed(1)}%`;
 }
