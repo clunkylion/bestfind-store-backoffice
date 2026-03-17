@@ -1,7 +1,6 @@
 "use server";
 
-import { db } from "@/server/db";
-import type { Product, Purchase, Sale } from "@prisma/client";
+import { db, type Product, type Purchase, type Sale } from "@/server/db";
 import type { DashboardKPIs, ProductWithStats, ProfitByProduct } from "@/types";
 
 export async function getDashboardKPIs(): Promise<DashboardKPIs> {

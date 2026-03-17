@@ -1,12 +1,20 @@
-import type { Product, Purchase, Sale } from "@prisma/client";
-
-export type { Product, Purchase, Sale };
+export type { Product, Purchase, Sale } from "@/server/db";
 
 export type ActionResult<T = void> =
   | { success: true; data: T }
   | { success: false; error: string };
 
-export type ProductWithStats = Product & {
+export type ProductWithStats = {
+  id: number;
+  name: string;
+  size: string | null;
+  gender: string;
+  type: string;
+  cost: unknown;
+  marginPct: unknown;
+  salePrice: unknown;
+  createdAt: Date;
+  updatedAt: Date;
   purchased: number;
   sold: number;
   stock: number;

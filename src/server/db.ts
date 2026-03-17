@@ -13,3 +13,9 @@ function createPrismaClient() {
 export const db = globalForPrisma.prisma ?? createPrismaClient();
 
 if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = db;
+
+// Infer model types from the Prisma client
+type DbClient = typeof db;
+export type Product = Awaited<ReturnType<DbClient["product"]["findFirstOrThrow"]>>;
+export type Purchase = Awaited<ReturnType<DbClient["purchase"]["findFirstOrThrow"]>>;
+export type Sale = Awaited<ReturnType<DbClient["sale"]["findFirstOrThrow"]>>;
