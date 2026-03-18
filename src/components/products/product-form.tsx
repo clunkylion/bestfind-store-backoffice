@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect } from "react";
+import { useActionState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -64,7 +64,7 @@ export function ProductForm({ open, onOpenChange, product }: ProductFormProps) {
               required
             />
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="size">Tamaño</Label>
               <Input
@@ -80,7 +80,7 @@ export function ProductForm({ open, onOpenChange, product }: ProductFormProps) {
                 name="gender"
                 defaultValue={product?.gender ?? "UNISEX"}
               >
-                <SelectTrigger id="gender">
+                <SelectTrigger id="gender" className="w-full">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -91,11 +91,11 @@ export function ProductForm({ open, onOpenChange, product }: ProductFormProps) {
               </Select>
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="type">Tipo</Label>
               <Select name="type" defaultValue={product?.type ?? "EDP"}>
-                <SelectTrigger id="type">
+                <SelectTrigger id="type" className="w-full">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -130,7 +130,7 @@ export function ProductForm({ open, onOpenChange, product }: ProductFormProps) {
               required
             />
           </div>
-          <div className="flex justify-end gap-2">
+          <div className="flex flex-col-reverse sm:flex-row justify-end gap-2">
             <Button
               type="button"
               variant="outline"

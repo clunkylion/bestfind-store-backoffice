@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState, useMemo } from "react";
 import {
   Dialog,
   DialogContent,
@@ -11,13 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Combobox } from "@/components/ui/combobox";
 import { createSale, updateSale } from "@/server/actions/sales";
 import type { Product, Sale } from "@/types";
 import { toast } from "sonner";
@@ -32,6 +26,14 @@ interface SaleFormProps {
 
 export function SaleForm({ open, onOpenChange, sale, products }: SaleFormProps) {
   const isEdit = !!sale;
+  const [productId, setProductId] = useState(
+    sale?.productId?.toString() ?? ""
+  );
+
+  const selectedProduct = useMemo(
+    () => products.find((p) => p.id.toString() === productId),
+    [products, productId]
+  );
 
   async function action(_prev: unknown, formData: FormData) {
     const result = isEdit
@@ -49,12 +51,20 @@ export function SaleForm({ open, onOpenChange, sale, products }: SaleFormProps) 
 
   const [, formAction, pending] = useActionState(action, null);
 
-  const selectedProduct = products.find(
-    (p) => p.id === sale?.productId
-  );
+  const productOptions = products.map((p) => ({
+    value: p.id.toString(),
+    label: p.name,
+  }));
+
+  const handleOpenChange = (isOpen: boolean) => {
+    if (isOpen) {
+      setProductId(sale?.productId?.toString() ?? "");
+    }
+    onOpenChange(isOpen);
+  };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>
@@ -63,24 +73,17 @@ export function SaleForm({ open, onOpenChange, sale, products }: SaleFormProps) 
         </DialogHeader>
         <form action={formAction} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="productId">Producto</Label>
-            <Select
+            <Label>Producto</Label>
+            <Combobox
               name="productId"
-              defaultValue={sale?.productId?.toString() ?? ""}
-            >
-              <SelectTrigger id="productId">
-                <SelectValue placeholder="Seleccionar producto" />
-              </SelectTrigger>
-              <SelectContent>
-                {products.map((p) => (
-                  <SelectItem key={p.id} value={p.id.toString()}>
-                    {p.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              options={productOptions}
+              value={productId}
+              onValueChange={setProductId}
+              placeholder="Buscar producto..."
+              searchPlaceholder="Buscar por nombre..."
+            />
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="date">Fecha</Label>
               <Input
@@ -133,7 +136,7 @@ export function SaleForm({ open, onOpenChange, sale, products }: SaleFormProps) 
               rows={2}
             />
           </div>
-          <div className="flex justify-end gap-2">
+          <div className="flex flex-col-reverse sm:flex-row justify-end gap-2">
             <Button
               type="button"
               variant="outline"

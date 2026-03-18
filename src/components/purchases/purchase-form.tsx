@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -11,13 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Combobox } from "@/components/ui/combobox";
 import { createPurchase, updatePurchase } from "@/server/actions/purchases";
 import type { Product, Purchase } from "@/types";
 import { toast } from "sonner";
@@ -37,6 +31,9 @@ export function PurchaseForm({
   products,
 }: PurchaseFormProps) {
   const isEdit = !!purchase;
+  const [productId, setProductId] = useState(
+    purchase?.productId?.toString() ?? ""
+  );
 
   async function action(_prev: unknown, formData: FormData) {
     const result = isEdit
@@ -54,8 +51,21 @@ export function PurchaseForm({
 
   const [, formAction, pending] = useActionState(action, null);
 
+  const productOptions = products.map((p) => ({
+    value: p.id.toString(),
+    label: p.name,
+  }));
+
+  // Reset productId when dialog opens with different purchase
+  const handleOpenChange = (isOpen: boolean) => {
+    if (isOpen) {
+      setProductId(purchase?.productId?.toString() ?? "");
+    }
+    onOpenChange(isOpen);
+  };
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>
@@ -64,24 +74,17 @@ export function PurchaseForm({
         </DialogHeader>
         <form action={formAction} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="productId">Producto</Label>
-            <Select
+            <Label>Producto</Label>
+            <Combobox
               name="productId"
-              defaultValue={purchase?.productId?.toString() ?? ""}
-            >
-              <SelectTrigger id="productId">
-                <SelectValue placeholder="Seleccionar producto" />
-              </SelectTrigger>
-              <SelectContent>
-                {products.map((p) => (
-                  <SelectItem key={p.id} value={p.id.toString()}>
-                    {p.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              options={productOptions}
+              value={productId}
+              onValueChange={setProductId}
+              placeholder="Buscar producto..."
+              searchPlaceholder="Buscar por nombre..."
+            />
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="date">Fecha</Label>
               <Input
@@ -108,7 +111,7 @@ export function PurchaseForm({
               />
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="unitPrice">Precio Unitario</Label>
               <Input
@@ -138,7 +141,7 @@ export function PurchaseForm({
               rows={2}
             />
           </div>
-          <div className="flex justify-end gap-2">
+          <div className="flex flex-col-reverse sm:flex-row justify-end gap-2">
             <Button
               type="button"
               variant="outline"
