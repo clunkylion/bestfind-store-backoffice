@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { authClient } from "@/lib/auth/client";
 import { Button } from "@/components/ui/button";
@@ -11,12 +10,13 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { toast } from "sonner";
 
 export default function SignInPage() {
-  const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setLoading(true);
+    setError("");
 
     const formData = new FormData(e.currentTarget);
     const email = formData.get("email") as string;
@@ -24,15 +24,22 @@ export default function SignInPage() {
 
     try {
       const result = await authClient.signIn.email({ email, password });
+
       if (result.error) {
-        toast.error(result.error.message ?? "Credenciales incorrectas");
+        const msg = result.error.message ?? "Credenciales incorrectas";
+        setError(msg);
+        toast.error(msg);
         setLoading(false);
         return;
       }
-      router.push("/");
-      router.refresh();
-    } catch {
-      toast.error("Error al iniciar sesión");
+
+      toast.success("Sesión iniciada");
+      window.location.href = "/";
+    } catch (err) {
+      console.error("signIn error:", err);
+      const msg = "Error al iniciar sesión. Verifica tus credenciales.";
+      setError(msg);
+      toast.error(msg);
       setLoading(false);
     }
   }
@@ -51,6 +58,11 @@ export default function SignInPage() {
               <CardDescription>Ingresa tu email y contraseña</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
+              {error && (
+                <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
+                  {error}
+                </div>
+              )}
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
                 <Input

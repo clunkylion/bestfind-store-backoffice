@@ -1,9 +1,12 @@
 "use server";
 
+import { unstable_noStore as noStore } from "next/cache";
 import { db, type Product, type Purchase, type Sale } from "@/server/db";
+import { serialize } from "@/lib/utils";
 import type { DashboardKPIs, ProductWithStats, ProfitByProduct } from "@/types";
 
 export async function getDashboardKPIs(): Promise<DashboardKPIs> {
+  noStore();
   const [purchaseAgg, saleAgg, productCount, receiptCount] = await Promise.all([
     db.purchase.aggregate({
       _sum: { total: true },
@@ -52,6 +55,7 @@ export async function getDashboardKPIs(): Promise<DashboardKPIs> {
 }
 
 export async function getProductsWithStats(): Promise<ProductWithStats[]> {
+  noStore();
   const products: Product[] = await db.product.findMany({ orderBy: { name: "asc" } });
   const purchases: Purchase[] = await db.purchase.findMany();
   const sales: Sale[] = await db.sale.findMany({ where: { isSold: true } });
@@ -65,7 +69,7 @@ export async function getProductsWithStats(): Promise<ProductWithStats[]> {
     salesMap.set(s.productId, (salesMap.get(s.productId) ?? 0) + s.quantity);
   }
 
-  return products.map((product: Product) => {
+  return serialize(products.map((product: Product) => {
     const purchased = purchaseMap.get(product.id) ?? 0;
     const sold = salesMap.get(product.id) ?? 0;
     return {
@@ -74,10 +78,11 @@ export async function getProductsWithStats(): Promise<ProductWithStats[]> {
       sold,
       stock: purchased - sold,
     };
-  });
+  }));
 }
 
 export async function getProfitByProduct(): Promise<ProfitByProduct[]> {
+  noStore();
   const sales = await db.sale.findMany({
     where: { isSold: true },
     include: { product: true },
@@ -120,6 +125,7 @@ export async function getProfitByProduct(): Promise<ProfitByProduct[]> {
 export async function getTopProductsByInvestment(): Promise<
   { productName: string; totalInvested: number }[]
 > {
+  noStore();
   const purchases: Purchase[] = await db.purchase.findMany();
   const products: Product[] = await db.product.findMany();
 

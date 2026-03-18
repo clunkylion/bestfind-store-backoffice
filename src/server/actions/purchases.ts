@@ -1,16 +1,19 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, unstable_noStore as noStore } from "next/cache";
 import { db } from "@/server/db";
 import { purchaseSchema } from "@/lib/validators";
 import { handleServerError } from "@/lib/error-handler";
+import { serialize } from "@/lib/utils";
 import type { ActionResult, Purchase } from "@/types";
 
-export async function getPurchases(): Promise<Purchase[]> {
-  return db.purchase.findMany({
+export async function getPurchases() {
+  noStore();
+  const purchases = await db.purchase.findMany({
     orderBy: { date: "desc" },
     include: { product: true },
   });
+  return serialize(purchases);
 }
 
 export async function createPurchase(
@@ -34,7 +37,7 @@ export async function createPurchase(
 
     revalidatePath("/compras");
     revalidatePath("/");
-    return { success: true, data: purchase };
+    return { success: true, data: serialize(purchase) };
   } catch (error) {
     return handleServerError(error, { action: "createPurchase", entity: "purchase" });
   }
@@ -63,7 +66,7 @@ export async function updatePurchase(
 
     revalidatePath("/compras");
     revalidatePath("/");
-    return { success: true, data: purchase };
+    return { success: true, data: serialize(purchase) };
   } catch (error) {
     return handleServerError(error, { action: "updatePurchase", entity: "purchase" });
   }

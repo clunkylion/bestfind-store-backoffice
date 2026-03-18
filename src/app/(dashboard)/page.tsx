@@ -25,7 +25,6 @@ import {
   BadgeDollarSign,
 } from "lucide-react";
 
-export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
   const [kpis, productsWithStats, topProducts] = await Promise.all([

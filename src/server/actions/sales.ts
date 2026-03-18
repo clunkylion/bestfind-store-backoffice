@@ -1,16 +1,19 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, unstable_noStore as noStore } from "next/cache";
 import { db } from "@/server/db";
 import { saleSchema } from "@/lib/validators";
 import { handleServerError } from "@/lib/error-handler";
+import { serialize } from "@/lib/utils";
 import type { ActionResult, Sale } from "@/types";
 
-export async function getSales(): Promise<Sale[]> {
-  return db.sale.findMany({
+export async function getSales() {
+  noStore();
+  const sales = await db.sale.findMany({
     orderBy: { date: "desc" },
     include: { product: true },
   });
+  return serialize(sales);
 }
 
 export async function createSale(
@@ -44,7 +47,7 @@ export async function createSale(
     revalidatePath("/ventas");
     revalidatePath("/");
     revalidatePath("/ganancias");
-    return { success: true, data: sale };
+    return { success: true, data: serialize(sale) };
   } catch (error) {
     return handleServerError(error, { action: "createSale", entity: "sale" });
   }
@@ -82,7 +85,7 @@ export async function updateSale(
     revalidatePath("/ventas");
     revalidatePath("/");
     revalidatePath("/ganancias");
-    return { success: true, data: sale };
+    return { success: true, data: serialize(sale) };
   } catch (error) {
     return handleServerError(error, { action: "updateSale", entity: "sale" });
   }
@@ -99,7 +102,7 @@ export async function toggleSoldStatus(id: number): Promise<ActionResult<Sale>> 
     revalidatePath("/ventas");
     revalidatePath("/");
     revalidatePath("/ganancias");
-    return { success: true, data: updated };
+    return { success: true, data: serialize(updated) };
   } catch (error) {
     return handleServerError(error, { action: "toggleSoldStatus", entity: "sale" });
   }

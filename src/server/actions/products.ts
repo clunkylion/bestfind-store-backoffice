@@ -1,13 +1,16 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, unstable_noStore as noStore } from "next/cache";
 import { db } from "@/server/db";
 import { productSchema } from "@/lib/validators";
 import { handleServerError } from "@/lib/error-handler";
+import { serialize } from "@/lib/utils";
 import type { ActionResult, Product } from "@/types";
 
-export async function getProducts(): Promise<Product[]> {
-  return db.product.findMany({ orderBy: { name: "asc" } });
+export async function getProducts() {
+  noStore();
+  const products = await db.product.findMany({ orderBy: { name: "asc" } });
+  return serialize(products);
 }
 
 export async function createProduct(
@@ -31,7 +34,7 @@ export async function createProduct(
 
     revalidatePath("/productos");
     revalidatePath("/");
-    return { success: true, data: product };
+    return { success: true, data: serialize(product) };
   } catch (error) {
     return handleServerError(error, { action: "createProduct", entity: "product" });
   }
@@ -60,7 +63,7 @@ export async function updateProduct(
 
     revalidatePath("/productos");
     revalidatePath("/");
-    return { success: true, data: product };
+    return { success: true, data: serialize(product) };
   } catch (error) {
     return handleServerError(error, { action: "updateProduct", entity: "product" });
   }

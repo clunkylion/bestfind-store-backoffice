@@ -1,25 +1,17 @@
-import { createAuthClient } from "@neondatabase/auth";
-import { headers } from "next/headers";
+import { createAuthServer, neonAuth } from "@neondatabase/auth/next/server";
 
-const authClient = createAuthClient(process.env.NEON_AUTH_BASE_URL!);
+export const authServer = createAuthServer();
 
 export async function getSession() {
-  const headersList = await headers();
-  const cookie = headersList.get("cookie") ?? "";
-
-  const session = await authClient.getSession({
-    fetchOptions: {
-      headers: { cookie },
-    },
-  });
-
-  return session.data;
+  const { session, user } = await neonAuth();
+  if (!session || !user) return null;
+  return { session, user };
 }
 
 export async function requireSession() {
-  const session = await getSession();
-  if (!session?.user) {
+  const result = await getSession();
+  if (!result) {
     throw new Error("Unauthorized");
   }
-  return session;
+  return result;
 }
